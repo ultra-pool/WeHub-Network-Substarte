@@ -1,3 +1,27 @@
+# To-do List 
+
+Moving stuff from other test branches into this main repo. Everyone is welcome to help add to make Wehub the greatest blockchain ever built
+
+:hammer_and_wrench:1. Add & Check Runtime Pallet https://substrate.dev/docs/en/tutorials/add-a-pallet/
+
+:hammer_and_wrench:2. Add & Check PoE Decentralized App https://substrate.dev/docs/en/tutorials/build-a-dapp/
+
+:hammer_and_wrench:3. Add & Check Chain upgrade https://substrate.dev/docs/en/tutorials/upgrade-a-chain/
+
+:hammer_and_wrench:4. Add & Check Contracts Pallet https://substrate.dev/tutorials/ink-smart-contracts-tutorial/
+
+:hammer_and_wrench:5. Add & Check Permissioned Network https://substrate.dev/docs/en/tutorials/build-permission-network/
+
+:hammer_and_wrench:6. Add & Check Substrate Frontier (To run ETH stuff) https://substrate.dev/frontier-workshop/#/ https://substrate.dev/tutorials/substrate-frontier-workshop/
+
+:hammer_and_wrench:7. Add & Check New Smart Contract 
+
+:hammer_and_wrench:8. Add & Check Parachain for running side chains
+
+:hammer_and_wrench:9. Add & Check Bitcoin parachain (Cross chain) https://github.com/interlay
+
+:hammer_and_wrench:10. Add & Check Staking some where along the line before adding Parachain
+
 # Substrate Node Template
 
 A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacking :rocket:
