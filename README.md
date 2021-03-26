@@ -30,6 +30,8 @@ A fresh FRAME-based [Substrate](https://www.substrate.io/) node, ready for hacki
 
 Follow these steps to get started with the Node Template :hammer_and_wrench:
 
+If you using Windows please use https://substrate.dev/docs/en/knowledgebase/getting-started/windows-users
+
 ### Rust Setup
 
 First, complete the [basic Rust setup instructions](./doc/rust-setup.md).

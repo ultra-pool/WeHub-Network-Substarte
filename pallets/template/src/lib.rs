@@ -6,6 +6,10 @@
 
 use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
 use frame_system::ensure_signed;
+use frame_support::traits::ReservableCurrency;
+use frame_support::traits::OnUnbalanced;
+use frame_support::pallet_prelude::EnsureOrigin;
+
 
 #[cfg(test)]
 mod mock;
@@ -17,6 +21,30 @@ mod tests;
 pub trait Config: frame_system::Config {
 	/// Because this pallet emits events, it depends on the runtime's definition of an event.
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+
+
+    // The currency type that will be used to place deposits on nicks.
+    // It must implement ReservableCurrency.
+    // https://substrate.dev/rustdocs/v3.0.0/frame_support/traits/trait.ReservableCurrency.html
+    type Currency: ReservableCurrency<Self::AccountId>;
+
+    // The amount required to reserve a nick.
+//    type ReservationFee: Get<BalanceOf<Self>>;
+
+    // A callback that will be invoked when a deposit is forfeited.
+//    type Slashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
+
+    // Origins are used to identify network participants and control access.
+    // This is used to identify the pallet's admin.
+    // https://substrate.dev/docs/en/knowledgebase/runtime/origin
+    type ForceOrigin: EnsureOrigin<Self::Origin>;
+
+    // This parameter is used to configure a nick's minimum length.
+    type MinLength: Get<usize>;
+
+    // This parameter is used to configure a nick's maximum length.
+    // https://substrate.dev/docs/en/knowledgebase/runtime/storage#create-bounds
+    type MaxLength: Get<usize>;
 }
 
 // The pallet's runtime storage items.
