@@ -7,10 +7,15 @@
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use sp_std::prelude::*;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{
+	crypto::KeyTypeId,
+	OpaqueMetadata,
+	Encode,
+};
 use sp_runtime::{
 	ApplyExtrinsicResult, generic, create_runtime_str, impl_opaque_keys, MultiSignature,
 	transaction_validity::{TransactionValidity, TransactionSource},
+	MultiAddress,
 };
 use sp_runtime::traits::{
 	AccountIdLookup, BlakeTwo256, Block as BlockT, Verify, IdentifyAccount, NumberFor,
@@ -36,11 +41,13 @@ pub use frame_support::{
 		Weight, IdentityFee,
 		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_PER_SECOND},
 	},
+	debug,
 };
+
 use pallet_transaction_payment::CurrencyAdapter;
 
-/// Import the template pallet.
-pub use pallet_template;
+/// Import the wehub pallet.
+pub use pallet_wehub;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -236,46 +243,11 @@ impl pallet_balances::Config for Runtime {
 	/// The type for recording an account's balance.
 	type Balance = Balance;
 	/// The ubiquitous event type.
+	type Event = Event;
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
-	// The ubiquitous event type.
-    type Event = Event;
-}
-
-	// Code block for template for Nicks:
-parameter_types! {
-    // Choose a fee that incentivizes desireable behavior.
-    pub const NickReservationFee: u128 = 100;
-    pub const MinNickLength: usize = 8;
-    // Maximum bounds on storage are important to secure your chain.
-    pub const MaxNickLength: usize = 32;
-}
-
-impl pallet_nicks::Config for Runtime {
-    // The Balances pallet implements the ReservableCurrency trait.
-    // https://substrate.dev/rustdocs/v3.0.0/pallet_balances/index.html#implementations-2
-    type Currency = pallet_balances::Module<Runtime>;
-
-    // Use the NickReservationFee from the parameter_types block.
-    type ReservationFee = NickReservationFee;
-
-    // No action is taken when deposits are forfeited.
-    type Slashed = ();
-
-    // Configure the FRAME System Root origin as the Nick pallet admin.
-    // https://substrate.dev/rustdocs/v3.0.0/frame_system/enum.RawOrigin.html#variant.Root
-    type ForceOrigin = frame_system::EnsureRoot<AccountId>;
-
-    // Use the MinNickLength from the parameter_types block.
-    type MinLength = MinNickLength;
-
-    // Use the MaxNickLength from the parameter_types block.
-    type MaxLength = MaxNickLength;
-
-    // The ubiquitous event type.
-    type Event = Event;
 }
 
 parameter_types! {
@@ -294,9 +266,12 @@ impl pallet_sudo::Config for Runtime {
 	type Call = Call;
 }
 
-/// Configure the template pallet in pallets/template.
-impl pallet_template::Config for Runtime {
+/// Configure the wehub pallet in pallets/wehub.
+impl pallet_wehub::Config for Runtime {
 	type Event = Event;
+	type AuthorityId = pallet_wehub::crypto::TestAuthId;
+	type Call = Call;
+	type Currency = Balances;
 }
 
 // Create the runtime by composing the FRAME pallets that were previously configured.
@@ -314,9 +289,8 @@ construct_runtime!(
 		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
-		// Include the custom logic from the template pallet in the runtime.
-		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
-		Nicks: pallet_nicks::{Module, Call, Storage, Event<T>},
+		// Include the custom logic from the wehub pallet in the runtime.
+		WeHub: pallet_wehub::{Module, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
 	}
 );
 
@@ -352,6 +326,60 @@ pub type Executive = frame_executive::Executive<
 	Runtime,
 	AllModules,
 >;
+
+pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
+
+impl<T> frame_system::offchain::CreateSignedTransaction<T> for Runtime
+where Call: From<T>
+{
+	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
+		call: Call,
+		public: <Signature as sp_runtime::traits::Verify>::Signer,
+		account: AccountId,
+		index: Index,
+	) -> Option<(
+		Call,
+		<UncheckedExtrinsic as sp_runtime::traits::Extrinsic>::SignaturePayload,
+	)> {
+		let period = BlockHashCount::get() as u64;
+		let current_block = System::block_number() - 1;
+		let tip = 0;
+		let extra: SignedExtra = (
+			frame_system::CheckSpecVersion::<Runtime>::new(),
+			frame_system::CheckTxVersion::<Runtime>::new(),
+			frame_system::CheckGenesis::<Runtime>::new(),
+			frame_system::CheckEra::<Runtime>::from(generic::Era::mortal(period, current_block.into())),
+			frame_system::CheckNonce::<Runtime>::from(index),
+			frame_system::CheckWeight::<Runtime>::new(),
+			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
+		);
+
+		#[cfg_attr(not(feature = "std"), allow(unused_variables))]
+		let raw_payload = SignedPayload::new(call, extra)
+			.map_err(|e| {
+				debug::native::warn!("SignedPayload error: {:?}", e);
+			})
+			.ok()?;
+
+		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
+
+		let address = MultiAddress::Id(account);
+		let (call, extra, _) = raw_payload.deconstruct();
+		Some((call, (address, signature, extra)))
+	}
+}
+
+impl<T> frame_system::offchain::SendTransactionTypes<T> for Runtime
+where Call: From<T>
+{
+	type OverarchingCall = Call;
+	type Extrinsic = UncheckedExtrinsic;
+}
+
+impl frame_system::offchain::SigningTypes for Runtime {
+	type Public = <Signature as sp_runtime::traits::Verify>::Signer;
+	type Signature = Signature;
+}
 
 impl_runtime_apis! {
 	impl sp_api::Core<Block> for Runtime {
