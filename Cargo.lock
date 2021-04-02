@@ -3479,6 +3479,7 @@ version = "3.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
+ "hex-literal",
  "jsonrpc-core",
  "node-template-runtime",
  "pallet-transaction-payment-rpc",
@@ -3523,13 +3524,12 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
- "pallet-nicks",
  "pallet-randomness-collective-flip",
  "pallet-sudo",
- "pallet-template",
  "pallet-timestamp",
  "pallet-transaction-payment",
  "pallet-transaction-payment-rpc-runtime-api",
+ "pallet-wehub",
  "parity-scale-codec",
  "serde",
  "sp-api",
@@ -3750,21 +3750,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-nicks"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4373fb3928866b1c43c82ac58518ee844811488a5ebd51b00b6af2163766c68"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "serde",
- "sp-io",
- "sp-runtime",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-randomness-collective-flip"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3812,19 +3797,6 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-std",
-]
-
-[[package]]
-name = "pallet-template"
-version = "3.0.0"
-dependencies = [
- "frame-support",
- "frame-system",
- "parity-scale-codec",
- "serde",
- "sp-core",
- "sp-io",
- "sp-runtime",
 ]
 
 [[package]]
@@ -3890,6 +3862,21 @@ dependencies = [
  "pallet-transaction-payment",
  "parity-scale-codec",
  "sp-api",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-wehub"
+version = "3.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "parity-scale-codec",
+ "serde",
+ "sp-arithmetic",
+ "sp-core",
+ "sp-io",
  "sp-runtime",
 ]
 

@@ -1,12 +1,13 @@
-use sp_core::{Pair, Public, sr25519};
+use sp_core::{Pair, Public, sr25519, ed25519};
 use node_template_runtime::{
 	AccountId, AuraConfig, BalancesConfig, GenesisConfig, GrandpaConfig,
-	SudoConfig, SystemConfig, WASM_BINARY, Signature
+	SudoConfig, SystemConfig, WASM_BINARY, Signature, WeHubConfig,
 };
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{Verify, IdentifyAccount};
 use sc_service::ChainType;
+use hex_literal::hex;
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -53,6 +54,10 @@ pub fn development_config() -> Result<ChainSpec, String> {
 			vec![
 				authority_keys_from_seed("Alice"),
 			],
+			// Off-chain authorities
+			vec![
+				hex!["needtomakenewone"].into(),
+			],
 			// Sudo account
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
 			// Pre-funded accounts
@@ -90,25 +95,81 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 			wasm_binary,
 			// Initial PoA authorities
 			vec![
-				authority_keys_from_seed("Alice"),
-				authority_keys_from_seed("Bob"),
+				(
+					sr25519::Public::from_slice(&hex!("needtochange")).into(), // node-0
+					ed25519::Public::from_slice(&hex!("needtochange")).into(),
+				),
+				(
+					sr25519::Public::from_slice(&hex!("needtochange")).into(), // node-1
+					ed25519::Public::from_slice(&hex!("needtochange")).into(),
+				),
+			],
+			// Off-chain authorities
+			vec![
+				hex!("needtochange").into(), // node-0
+				hex!("needtochange").into(), // node-1
 			],
 			// Sudo account
-			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			sr25519::Public::from_slice(&hex!("needtochange")).into(), // node-0
 			// Pre-funded accounts
 			vec![
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				get_account_id_from_seed::<sr25519::Public>("Bob"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie"),
-				get_account_id_from_seed::<sr25519::Public>("Dave"),
-				get_account_id_from_seed::<sr25519::Public>("Eve"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+				hex!("needtochange").into(), // node-0
+				hex!("needtochange").into(), // node-1
+			],
+			true,
+		),
+		// Bootnodes
+		vec![],
+		// Telemetry
+		None,
+		// Protocol ID
+		None,
+		// Properties
+		None,
+		// Extensions
+		None,
+	))
+}
+
+pub fn public_testnet_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm binary not available".to_string())?;
+
+	Ok(ChainSpec::from_genesis(
+		// Name
+		"Jackblock Testnet",
+		// ID
+		"jackblock_testnet",
+		ChainType::Live,
+		move || testnet_genesis(
+			wasm_binary,
+			// Initial PoA authorities
+			vec![
+				(
+					sr25519::Public::from_slice(&hex!("needtochange")).into(), // repo
+					ed25519::Public::from_slice(&hex!("needtochange")).into(),
+				),
+				(
+					sr25519::Public::from_slice(&hex!("needtochange")).into(), // nunez
+					ed25519::Public::from_slice(&hex!("needtochange")).into(),
+				),
+				(
+					sr25519::Public::from_slice(&hex!("needtochange")).into(), // testing
+					ed25519::Public::from_slice(&hex!("needtochange")).into(),
+				),
+			],
+			// Off-chain authorities
+			vec![
+				hex!("needtochange").into(), // repo
+				hex!("needtochange").into(), // nunez
+				hex!("needtochange").into(), // testing
+			],
+			// Sudo account
+			sr25519::Public::from_slice(&hex!("needtochange")).into(), // node-0
+			// Pre-funded accounts
+			vec![
+				hex!("needtochange").into(), // rafal
+				hex!("needtochange").into(), // miko
+				hex!("needtochange").into(), // tomek
 			],
 			true,
 		),
@@ -129,6 +190,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 fn testnet_genesis(
 	wasm_binary: &[u8],
 	initial_authorities: Vec<(AuraId, GrandpaId)>,
+	offchain_authorities: Vec<AccountId>, // TO BE REMOVED --------------------------
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
@@ -152,6 +214,9 @@ fn testnet_genesis(
 		pallet_sudo: Some(SudoConfig {
 			// Assign network admin rights.
 			key: root_key,
+		}),
+		pallet_wehub: Some(WeHubConfig {
+			offchain_authorities,
 		}),
 	}
 }

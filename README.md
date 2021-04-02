@@ -2,7 +2,7 @@
 
 Moving stuff from other test branches into this main repo. Everyone is welcome to help add to make Wehub the greatest blockchain ever built
 
-:hammer_and_wrench:1. Add & Check Runtime Pallet https://substrate.dev/docs/en/tutorials/add-a-pallet/
+:heavy_check_mark: :hammer_and_wrench:1. Add & Check Runtime Pallet https://substrate.dev/docs/en/tutorials/add-a-pallet/
 
 :hammer_and_wrench:2. Add & Check PoE Decentralized App https://substrate.dev/docs/en/tutorials/build-a-dapp/
 
@@ -21,6 +21,8 @@ Moving stuff from other test branches into this main repo. Everyone is welcome t
 :hammer_and_wrench:9. Add & Check Bitcoin parachain (Cross chain) https://github.com/interlay
 
 :hammer_and_wrench:10. Add & Check Staking some where along the line before adding Parachain
+
+:clock1: :hammer_and_wrench:11. Add & Check NFT pallet
 
 # Substrate Node Template
 

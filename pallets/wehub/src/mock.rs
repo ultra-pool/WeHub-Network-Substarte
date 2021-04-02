@@ -1,4 +1,6 @@
-use crate as pallet_template;
+use super::*;
+
+use crate as pallet_wehub;
 use sp_core::H256;
 use frame_support::parameter_types;
 use sp_runtime::{
@@ -17,7 +19,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		TemplateModule: pallet_template::{Module, Call, Storage, Event<T>},
+		WeHub: pallet_wehub::{Module, Call, Storage, Event<T>},
 	}
 );
 
@@ -51,8 +53,17 @@ impl system::Config for Test {
 	type SS58Prefix = SS58Prefix;
 }
 
-impl pallet_template::Config for Test {
+pub struct MockRandom;
+
+impl Randomness<H256> for MockRandom {
+    fn random(_subject: &[u8]) -> H256 {
+        H256([0; 32])
+    }
+}
+
+impl pallet_wehub::Config for Test {
 	type Event = Event;
+	type Randomness = MockRandom;
 }
 
 // Build genesis storage according to the mock runtime.
