@@ -97,12 +97,12 @@ pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
 type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 const BET_PRICE: u32 = 1000000000; // TODO: u128
-const SESSION_IN_BLOCKS: u8 = 5;
+const SESSION_IN_BLOCKS: u32 = 5;
 const MIN_GUESS_NUMBER: u32 = 1;
 const MAX_GUESS_NUMBER: u32 = 10;
 const GUESS_NUMBERS_COUNT: usize = 6;
 const UNSIGNED_TX_PRIORITY: u64 = 100;
-const PALLET_ID: ModuleId = ModuleId(*b"Winner!");
+const PALLET_ID: ModuleId = ModuleId(*b"JackPot!");
 
 type SessionIdType = u128;
 type GuessNumbersType = [u8; GUESS_NUMBERS_COUNT];
@@ -166,7 +166,7 @@ decl_module! {
 		fn deposit_event() = default;
 
 		fn on_finalize(block_number: T::BlockNumber) {
-			if block_number % SessionLength::<T>::get() == T::BlockNumber::from(0u8) {
+			if block_number % SessionLength::<T>::get() == T::BlockNumber::from(0u32) {
 				let _ = Self::close_the_session();
 			}
 		}
