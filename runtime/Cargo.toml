@@ -1,6 +1,6 @@
 [package]
 authors = ['Wehub Network Frame work based on Substrate DevHub <https://github.com/substrate-developer-hub>']
-edition = '2021'
+edition = '2018'
 homepage = 'https://substrate.dev'
 license = 'Unlicense'
 name = 'node-template-runtime'
