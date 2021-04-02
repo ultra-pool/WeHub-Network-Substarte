@@ -1,15 +1,66 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-/// Edit this file to define custom logic or remove it if it is not needed.
-/// Learn more about FRAME and the core library of Substrate FRAME pallets:
-/// https://substrate.dev/docs/en/knowledgebase/runtime/frame
-
-use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
-use frame_system::ensure_signed;
-use frame_support::traits::ReservableCurrency;
-use frame_support::traits::OnUnbalanced;
-use frame_support::pallet_prelude::EnsureOrigin;
-
+use frame_support::{
+	decl_module,
+	decl_storage,
+	decl_event,
+	decl_error,
+	codec::{
+		Encode,
+		Decode,
+	},
+	traits::{
+		Vec,
+		Currency,
+		ExistenceRequirement::KeepAlive,
+	},
+	dispatch::{
+		DispatchError,
+		DispatchResult,
+	},
+	debug,
+	unsigned::{
+		ValidateUnsigned,
+	},
+};
+use frame_system::{
+	ensure_signed,
+	ensure_none,
+	offchain::{
+		AppCrypto,
+		CreateSignedTransaction,
+		SignedPayload,
+		SigningTypes,
+		Signer,
+		SendUnsignedTransaction,
+	},
+};
+use sp_runtime::{
+	ModuleId,
+	RandomNumberGenerator,
+	traits::{
+		BlakeTwo256,
+		IdentifyAccount,
+		AccountIdConversion,
+		Saturating,
+	},
+	RuntimeDebug,
+	transaction_validity::{
+		TransactionSource,
+		TransactionValidity,
+		InvalidTransaction,
+		ValidTransaction,
+	},
+};
+use sp_io::{
+	offchain,
+};
+use sp_core::{
+	crypto::{
+		KeyTypeId,
+	},
+};
+use sp_arithmetic::Percent;
 
 #[cfg(test)]
 mod mock;
@@ -17,115 +68,353 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
-/// Configure the pallet by specifying the parameters and types on which it depends.
-pub trait Config: frame_system::Config {
-	/// Because this pallet emits events, it depends on the runtime's definition of an event.
-	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+mod group_by;
+pub use group_by::{GroupByTrait};
 
+pub const KEY_TYPE: KeyTypeId = KeyTypeId(*b"whub");
 
-    // The currency type that will be used to place deposits on nicks.
-    // It must implement ReservableCurrency.
-    // https://substrate.dev/rustdocs/v3.0.0/frame_support/traits/trait.ReservableCurrency.html
-    type Currency: ReservableCurrency<Self::AccountId>;
+pub mod crypto {
+	use super::KEY_TYPE;
+	use sp_runtime::{app_crypto::{app_crypto, sr25519}, MultiSigner, MultiSignature};
 
-    // The amount required to reserve a nick.
-//    type ReservationFee: Get<BalanceOf<Self>>;
+	app_crypto!(sr25519, KEY_TYPE);
 
-    // A callback that will be invoked when a deposit is forfeited.
-//    type Slashed: OnUnbalanced<NegativeImbalanceOf<Self>>;
+	pub struct TestAuthId;
 
-    // Origins are used to identify network participants and control access.
-    // This is used to identify the pallet's admin.
-    // https://substrate.dev/docs/en/knowledgebase/runtime/origin
-    type ForceOrigin: EnsureOrigin<Self::Origin>;
-
-    // This parameter is used to configure a nick's minimum length.
-    type MinLength: Get<usize>;
-
-    // This parameter is used to configure a nick's maximum length.
-    // https://substrate.dev/docs/en/knowledgebase/runtime/storage#create-bounds
-    type MaxLength: Get<usize>;
-}
-
-// The pallet's runtime storage items.
-// https://substrate.dev/docs/en/knowledgebase/runtime/storage
-decl_storage! {
-	// A unique name is used to ensure that the pallet's storage items are isolated.
-	// This name may be updated, but each pallet in the runtime must use a unique name.
-	// ---------------------------------vvvvvvvvvvvvvv
-	trait Store for Module<T: Config> as TemplateModule {
-		// Learn more about declaring storage items:
-		// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
-		Something get(fn something): Option<u32>;
+	impl frame_system::offchain::AppCrypto<MultiSigner, MultiSignature> for TestAuthId {
+		type RuntimeAppPublic = Public;
+		type GenericSignature = sp_core::sr25519::Signature;
+		type GenericPublic = sp_core::sr25519::Public;
 	}
 }
 
-// Pallets use events to inform users when important changes are made.
-// https://substrate.dev/docs/en/knowledgebase/runtime/events
+pub trait Config: frame_system::Config + CreateSignedTransaction<Call<Self>> {
+	type Event: From<Event<Self>> + Into<<Self as frame_system::Config>::Event>;
+	type AuthorityId: AppCrypto<Self::Public, Self::Signature>;
+	type Call: From<Call<Self>>;
+	type Currency: Currency<Self::AccountId>;
+}
+type BalanceOf<T> = <<T as Config>::Currency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+
+const BET_PRICE: u32 = 1000000000; // TODO: u128
+const SESSION_IN_BLOCKS: u8 = 5;
+const MIN_GUESS_NUMBER: u32 = 1;
+const MAX_GUESS_NUMBER: u32 = 10;
+const GUESS_NUMBERS_COUNT: usize = 6;
+const UNSIGNED_TX_PRIORITY: u64 = 100;
+const PALLET_ID: ModuleId = ModuleId(*b"Winner!");
+
+type SessionIdType = u128;
+type GuessNumbersType = [u8; GUESS_NUMBERS_COUNT];
+type Winners<AccountId> = Vec<(Bet<AccountId>, u8)>;
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct Bet<AccountId> {
+	account_id: AccountId,
+	guess_numbers: GuessNumbersType,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug)]
+pub struct SessionNumbersPayload<Public, BlockNumber> {
+	public: Public,
+	block_number: BlockNumber,
+	session_id: SessionIdType,
+	session_numbers: GuessNumbersType,
+}
+
+impl<T: SigningTypes> SignedPayload<T> for SessionNumbersPayload<T::Public, T::BlockNumber> {
+	fn public(&self) -> T::Public {
+		self.public.clone()
+	}
+}
+
+decl_storage! {
+	trait Store for Module<T: Config> as WeHub {
+		SessionId get(fn session_id): SessionIdType;
+		SessionLength: T::BlockNumber = T::BlockNumber::from(SESSION_IN_BLOCKS);
+		Bets get(fn bets): map hasher(blake2_128_concat) SessionIdType => Vec<Bet<T::AccountId>>;
+		ClosedNotFinalisedSessionId get(fn closed_not_finalised_session): Option<SessionIdType>;
+		Authorities get(fn authorities) config(offchain_authorities): Vec<T::AccountId>;
+
+	}
+}
+
 decl_event!(
-	pub enum Event<T> where AccountId = <T as frame_system::Config>::AccountId {
-		/// Event documentation should end with an array that provides descriptive names for event
-		/// parameters. [something, who]
-		SomethingStored(u32, AccountId),
+	pub enum Event<T> where
+		AccountId = <T as frame_system::Config>::AccountId,
+		Balance = BalanceOf<T>,
+		{
+		NewBet(SessionIdType, Bet<AccountId>),
+		Winners(SessionIdType, Winners<AccountId>),
+		SessionResults(SessionIdType, GuessNumbersType, Winners<AccountId>),
+		RewardFeeForAuthority(AccountId, Balance),
+		RewardForWinner(AccountId, Balance),
 	}
 );
 
-// Errors inform users that something went wrong.
 decl_error! {
 	pub enum Error for Module<T: Config> {
-		/// Error names should be descriptive.
-		NoneValue,
-		/// Errors should have helpful documentation associated with them.
-		StorageOverflow,
+		SessionIdOverflow,
+		TryToFinalizeTheSessionWhichIsNotClosed,
 	}
 }
 
-// Dispatchable functions allows users to interact with the pallet and invoke state changes.
-// These functions materialize as "extrinsics", which are often compared to transactions.
-// Dispatchable functions must be annotated with a weight and must return a DispatchResult.
 decl_module! {
 	pub struct Module<T: Config> for enum Call where origin: T::Origin {
-		// Errors must be initialized if they are used by the pallet.
 		type Error = Error<T>;
 
-		// Events must be initialized if they are used by the pallet.
 		fn deposit_event() = default;
 
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
-		#[weight = 10_000 + T::DbWeight::get().writes(1)]
-		pub fn do_something(origin, something: u32) -> dispatch::DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
-			let who = ensure_signed(origin)?;
-
-			// Update storage.
-			Something::put(something);
-
-			// Emit an event.
-			Self::deposit_event(RawEvent::SomethingStored(something, who));
-			// Return a successful DispatchResult
-			Ok(())
-		}
-
-		/// An example dispatchable that may throw a custom error.
-		#[weight = 10_000 + T::DbWeight::get().reads_writes(1,1)]
-		pub fn cause_error(origin) -> dispatch::DispatchResult {
-			let _who = ensure_signed(origin)?;
-
-			// Read a value from storage.
-			match Something::get() {
-				// Return an error if the value has not been set.
-				None => Err(Error::<T>::NoneValue)?,
-				Some(old) => {
-					// Increment the value read from storage; will error in the event of overflow.
-					let new = old.checked_add(1).ok_or(Error::<T>::StorageOverflow)?;
-					// Update the value in storage with the incremented result.
-					Something::put(new);
-					Ok(())
-				},
+		fn on_finalize(block_number: T::BlockNumber) {
+			if block_number % SessionLength::<T>::get() == T::BlockNumber::from(0u8) {
+				let _ = Self::close_the_session();
 			}
 		}
+
+		fn offchain_worker(block_number: T::BlockNumber) {
+			// TODO - set offchain worker lock to do not start twice for the same session
+
+			if let Some(session_id) = Self::closed_not_finalised_session() {
+				if let Err(error) = Self::generate_session_numbers_and_send(block_number, session_id) {
+					debug::RuntimeLogger::init();
+					debug::info!("--- offchain_worker error: {}", error);
+				}
+			}
+		}
+
+		#[weight = 10_000]
+		pub fn add_new_bet(origin, guess_numbers: GuessNumbersType) {
+			let account_id = ensure_signed(origin)?;
+			let session_id = SessionId::get();
+
+			let new_bet = Bet {
+				account_id: account_id.clone(),
+				guess_numbers,
+			};
+
+			let bet_price: BalanceOf<T> = BET_PRICE.into(); // TODO: impl _u128.into()
+
+			Bets::<T>::try_mutate(session_id, |bets| -> DispatchResult {
+				T::Currency::transfer(&account_id, &Self::account_id(), bet_price, KeepAlive)?;
+				bets.push(new_bet.clone());
+				Ok(())
+			})?;
+
+			Self::deposit_event(RawEvent::NewBet(session_id, new_bet));
+		}
+
+		#[weight = 10_000]
+		pub fn finalize_the_session(origin, payload: SessionNumbersPayload<T::Public, T::BlockNumber>, _singature: T::Signature) {
+			ensure_none(origin)?;
+
+			ClosedNotFinalisedSessionId::try_mutate(|x| -> DispatchResult {
+				match x {
+					None => return Err(Error::<T>::TryToFinalizeTheSessionWhichIsNotClosed)?,
+					Some(value) => {
+						if *value != payload.session_id {
+							return Err(Error::<T>::TryToFinalizeTheSessionWhichIsNotClosed)?
+						}
+
+						*x = None;
+						return Ok(())
+					},
+				};
+			})?;
+
+			let session_bets = Bets::<T>::get(payload.session_id);
+			let winners = Self::get_winners(payload.session_numbers, session_bets);
+
+			Self::deposit_event(RawEvent::SessionResults(payload.session_id, payload.session_numbers, winners.clone()));
+
+			debug::RuntimeLogger::init();
+			debug::info!("--- Finalize_the_session: {}", payload.session_id);
+			debug::info!("--- Session_numbers: {:?}", payload.session_numbers);
+			debug::info!("--- Winners: {:?}", winners);
+
+			if winners.len() > 0 {
+				let (_, pot) = Self::pot();
+				let fees = Percent::from_percent(10) * pot;
+				let pot_for_rewards = pot.saturating_sub(fees);
+				let authorities = Self::authorities();
+				let authorities_count = authorities.len() as u32;
+				let reward_fee_per_authority: BalanceOf<T> = fees / authorities_count.into(); // TODO: fixed point safe division
+
+				debug::info!("--- Pot before: {:?}", pot);
+				debug::info!("--- Pot for fees: {:?} $", fees);
+				debug::info!("--- Pot for rewards: {:?} $", pot_for_rewards);
+
+				for authoritiy in authorities {
+					debug::info!("--- Reward for authority: {:?}, {:?} $", authoritiy, reward_fee_per_authority);
+					T::Currency::transfer(&Self::account_id(), &authoritiy, reward_fee_per_authority, KeepAlive)?;
+					Self::deposit_event(RawEvent::RewardFeeForAuthority(authoritiy, reward_fee_per_authority));
+				};
+
+				let winners_to_reward: Winners<T::AccountId> = winners.into_iter().filter(|&(_, hits) | hits >= 3).collect();
+				let winners_grouped_by_hits = winners_to_reward.group_by(|(_, a_hits), (_, b_hits)| a_hits == b_hits);
+
+				winners_grouped_by_hits.for_each(|winners| {
+					let hits = winners[0].1;
+
+					match hits {
+						3 => {
+							Self::distribute_reward(3, winners, pot_for_rewards, hits);
+						},
+						4 => {
+							Self::distribute_reward(7, winners, pot_for_rewards, hits);
+						},
+						5 => {
+							Self::distribute_reward(15, winners, pot_for_rewards, hits);
+						},
+						6 => {
+							Self::distribute_reward(75, winners, pot_for_rewards, hits);
+						},
+						_ => debug::info!("Error distribute_reward"), // TODO: handle Error
+					}
+				});
+
+				let (_, pot) = Self::pot();
+				debug::info!("--- Pot after: {:?} $", pot);
+			}
+		}
+	}
+}
+
+impl<T: Config> Module<T> {
+	pub fn account_id() -> T::AccountId {
+		PALLET_ID.into_account()
+	}
+
+	fn pot() -> (T::AccountId, BalanceOf<T>) {
+			let account_id = Self::account_id();
+			let balance = T::Currency::free_balance(&account_id)
+				.saturating_sub(T::Currency::minimum_balance());
+
+			(account_id, balance)
+	}
+
+	fn distribute_reward(reward_percentage: u8, winners: &[(Bet<T::AccountId>, u8)], pot_for_rewards: BalanceOf<T>, hits: u8) {
+		let rewards_from_pot = Percent::from_percent(reward_percentage) * pot_for_rewards;
+		let winners_count = winners.len() as u32;
+		let reward_per_winner: BalanceOf<T> = rewards_from_pot / winners_count.into(); // TODO: fixed point safe division
+
+		winners.iter().for_each(|winner| {
+			let winner_account = &winner.0.account_id;
+			debug::info!("Account {:?} won {:?} $ by guessing {:?} numbers!", winner_account, reward_per_winner, hits);
+			let _ = T::Currency::transfer(&Self::account_id(), &winner_account, reward_per_winner, KeepAlive); // TODO: handle erorr
+			Self::deposit_event(RawEvent::RewardForWinner(winner_account.clone(), reward_per_winner));
+		})
+	}
+
+	fn close_the_session() -> DispatchResult {
+		let session_id = Self::next_session_id()?;
+		ClosedNotFinalisedSessionId::put(session_id);
+		Ok(())
+	}
+
+	fn get_winners(session_numbers: GuessNumbersType, session_bets: Vec<Bet<T::AccountId>>) -> Winners<T::AccountId> {
+		session_bets.into_iter()
+			.map(|bet| {
+				let correct = session_numbers.iter()
+					.filter(|n| bet.guess_numbers.contains(n))
+					.fold(0, |acc, _| acc + 1);
+
+				(bet, correct)
+			})
+			.filter(|x| x.1 > 0)
+			.collect::<Winners<T::AccountId>>()
+	}
+
+	fn next_session_id() -> Result<SessionIdType, DispatchError> {
+		let session_id = SessionId::get();
+		let next_session_id = session_id.checked_add(1).ok_or(Error::<T>::SessionIdOverflow)?;
+		SessionId::put(next_session_id);
+
+		Ok(session_id)
+	}
+
+	fn is_authority_account(account_id: &T::AccountId) -> bool {
+		Self::authorities().contains(account_id)
+	}
+
+	#[cfg(test)]
+	fn set_session_id(session_id: SessionIdType) {
+		SessionId::put(session_id);
+	}
+
+
+
+	// --- Off-chain workers ------------------------
+
+	fn generate_session_numbers_and_send(block_number: T::BlockNumber, session_id: SessionIdType) -> Result<(), &'static str> {
+		let session_numbers = Self::get_session_numbers();
+
+		let (_account, result) = Signer::<T, T::AuthorityId>::any_account().send_unsigned_transaction(
+			|account| SessionNumbersPayload {
+				public: account.public.clone(),
+				block_number,
+				session_id,
+				session_numbers,
+			},
+			|payload, signature| {
+				Call::finalize_the_session(payload, signature)
+			}
+		).ok_or("No local accounts accounts available")?;
+
+		result.map_err(|()| "Unable to submit transaction")?;
+
+		Ok(())
+	}
+
+	fn get_random_number() -> u8 {
+		let random_seed = offchain::random_seed();
+		let mut rng = RandomNumberGenerator::<BlakeTwo256>::new(random_seed.into());
+
+		(rng.pick_u32(MAX_GUESS_NUMBER - MIN_GUESS_NUMBER) + MIN_GUESS_NUMBER) as u8
+	}
+
+	fn get_session_numbers() -> GuessNumbersType {
+		let mut session_numbers: GuessNumbersType = [0; GUESS_NUMBERS_COUNT];
+
+		let mut i = 0;
+		loop {
+			let next_session_number = Self::get_random_number();
+			if !session_numbers.contains(&next_session_number) {
+				session_numbers[i] = next_session_number;
+				i += 1;
+			}
+
+			if i == GUESS_NUMBERS_COUNT {
+				break;
+			}
+		}
+
+		session_numbers
+	}
+}
+
+impl<T: Config> ValidateUnsigned for Module<T> {
+	type Call = Call<T>;
+
+	fn validate_unsigned(_source: TransactionSource, call: &Self::Call) -> TransactionValidity {
+		match call {
+			Call::finalize_the_session(ref payload, ref signature) => {
+				let valid_signature = SignedPayload::<T>::verify::<T::AuthorityId>(payload, signature.clone());
+				if !valid_signature {
+					return InvalidTransaction::BadProof.into();
+				}
+
+				let account_id = payload.public.clone().into_account();
+				if !Self::is_authority_account(&account_id) {
+					return InvalidTransaction::BadProof.into();
+				}
+
+				return ValidTransaction::with_tag_prefix("WeHub/validate_unsigned/finalize_the_session")
+					.priority(UNSIGNED_TX_PRIORITY)
+					.longevity(5)
+					.propagate(true)
+					.build();
+			},
+			_ => return InvalidTransaction::Call.into(),
+		};
 	}
 }
