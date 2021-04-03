@@ -1,6 +1,6 @@
 [package]
-authors = ['WeHub Network Framework based on Substrate DevHub <https://github.com/substrate-developer-hub>']
-description = 'FRAME pallet template for defining custom runtime logic.'
+authors = ['WeHub Network Framework based on Substrate DevHub']
+description = 'WeHub NetWork Framework.'
 edition = '2018'
 license = 'Unlicense'
 name = 'pallet-wehub'
