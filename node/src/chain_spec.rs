@@ -56,7 +56,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 			],
 			// Off-chain authorities
 			vec![
-				hex!["0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02"].into(),
+				hex!["8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02"].into(),
 			],
 			// Sudo account
 			get_account_id_from_seed::<sr25519::Public>("Alice"),
@@ -96,25 +96,25 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 			// Initial PoA authorities
 			vec![
 				(
-					sr25519::Public::from_slice(&hex!("0x8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(), // node-0
-					ed25519::Public::from_slice(&hex!("0x8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(),
+					sr25519::Public::from_slice(&hex!("8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(), // node-0
+					ed25519::Public::from_slice(&hex!("8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(),
 				),
 				(
-					sr25519::Public::from_slice(&hex!("0x36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e")).into(), // node-1
-					ed25519::Public::from_slice(&hex!("0x36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e")).into(),
+					sr25519::Public::from_slice(&hex!("36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e")).into(), // node-1
+					ed25519::Public::from_slice(&hex!("36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e")).into(),
 				),
 			],
 			// Off-chain authorities
 			vec![
-				hex!("0x8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6").into(), // node-0
-				hex!("0x36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e").into(), // node-1
+				hex!("8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6").into(), // node-0
+				hex!("36a6655d34ea6be1bbbe6efcf2b2615465f87196cc9ffd19321e798c6626d71e").into(), // node-1
 			],
 			// Sudo account
-			sr25519::Public::from_slice(&hex!("0x8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(), // node-0
+			sr25519::Public::from_slice(&hex!("8d8dc4b6f620b6cc03382997a1b162f5daefea8508378274d1dd45843a8f0db6")).into(), // node-0
 			// Pre-funded accounts
 			vec![
-				hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // node-0
-				hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // node-1
+				hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // node-0
+				hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // node-1
 			],
 			true,
 		),
@@ -145,31 +145,31 @@ pub fn public_testnet_config() -> Result<ChainSpec, String> {
 			// Initial PoA authorities
 			vec![
 				(
-					sr25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // repo
-					ed25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
+					sr25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // repo
+					ed25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
 				),
 				(
-					sr25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // nunez
-					ed25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
+					sr25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // nunez
+					ed25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
 				),
 				(
-					sr25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // testing
-					ed25519::Public::from_slice(&hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
+					sr25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(), // testing
+					ed25519::Public::from_slice(&hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08")).into(),
 				),
 			],
 			// Off-chain authorities
 			vec![
-				hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // repo
-				hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // nunez
-				hex!("0xe0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // testing
+				hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // repo
+				hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // nunez
+				hex!("e0a1a14dba60a8c8e934691d2c494ffc81ebc27f1ffba8b01e3554e69b676e08").into(), // testing
 			],
 			// Sudo account
-			sr25519::Public::from_slice(&hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02")).into(), // node-0
+			sr25519::Public::from_slice(&hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02")).into(), // node-0
 			// Pre-funded accounts
 			vec![
-				hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // repo
-				hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // nunez
-				hex!("0x8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // testing
+				hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // repo
+				hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // nunez
+				hex!("8b3b84c10aac8abf34906f5387b93ee126abc3c03da91da3aca030b868f97a02").into(), // testing
 			],
 			true,
 		),
