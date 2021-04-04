@@ -27,6 +27,9 @@ use pallet_grandpa::fg_primitives;
 use sp_version::RuntimeVersion;
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
+use pallet_evm::{
+    EnsureAddressTruncated, HashedAddressMapping,
+};
 
 // A few exports that help ease life for downstream crates.
 #[cfg(any(feature = "std", test))]
@@ -512,7 +515,23 @@ impl_runtime_apis! {
 			TransactionPayment::query_fee_details(uxt, len)
 		}
 	}
+	// EVM Pallet code start
+	EVM: pallet_evm::{Module, Call, Storage, Config, Event<T>}
+	parameter_types! {
+    pub const LeetChainId: u64 = 1337;
+}
 
+impl pallet_evm::Trait for Runtime {
+    type FeeCalculator = ();
+    type CallOrigin = EnsureAddressTruncated;
+    type WithdrawOrigin = EnsureAddressTruncated;
+    type AddressMapping = HashedAddressMapping<BlakeTwo256>;
+    type Currency = Balances;
+    type Event = Event;
+    type Precompiles = ();
+    type ChainId = LeetChainId;
+}
+	// EVM pallet code end
 	#[cfg(feature = "runtime-benchmarks")]
 	impl frame_benchmarking::Benchmark<Block> for Runtime {
 		fn dispatch_benchmark(
