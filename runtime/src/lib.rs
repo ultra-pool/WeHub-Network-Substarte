@@ -274,6 +274,13 @@ impl pallet_wehub::Config for Runtime {
 	type Currency = Balances;
 }
 
+impl orml_nft::Config for Runtime {
+	type ClassId = u32;
+	type TokenId = u32;
+	type ClassData = ();
+	type TokenData = pallet_wehub::NFTHash;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -291,6 +298,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Module, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the wehub pallet in the runtime.
 		WeHub: pallet_wehub::{Module, Call, Config<T>, Storage, Event<T>, ValidateUnsigned},
+		NFT: orml_nft::{Module, Storage},
 	}
 );
 
