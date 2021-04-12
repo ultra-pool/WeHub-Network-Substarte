@@ -1,3 +1,5 @@
+[![Check Set-Up & Build](https://github.com/ultra-pool/WeHub-Network-Substarte/actions/workflows/check.yml/badge.svg)](https://github.com/ultra-pool/WeHub-Network-Substarte/actions/workflows/check.yml)
+
 # To-do List 
 
 Moving stuff from other test branches into this main repo. Everyone is welcome to help add to make Wehub the greatest blockchain ever built
