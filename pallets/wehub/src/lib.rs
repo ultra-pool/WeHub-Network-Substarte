@@ -212,7 +212,6 @@ decl_module! {
 
 		fn offchain_worker(block_number: T::BlockNumber) {
 			// TODO - set offchain worker lock to do not start twice for the same session
-
 			if let Some(session_id) = Self::closed_not_finalised_session() {
 				if let Err(error) = Self::generate_session_numbers_and_send(block_number, session_id) {
 					debug::RuntimeLogger::init();
