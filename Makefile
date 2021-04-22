@@ -40,6 +40,9 @@ start:
 node-build:
 	cargo build --release
 
+keystore-add:
+	curl http://localhost:9933 -H "Content-Type:application/json;charset=utf-8" -d "@keystore.json"
+
 local-node-0-start:
 	./target/release/node-template -lruntime=debug \
 	--base-path $(BASE_PATH_PREFIX)/node_0 \
@@ -105,7 +108,7 @@ public-boot-node-start:
 	--rpc-cors $(PUBLIC_RPC_CORS) \
 	--rpc-methods Unsafe \
 	--no-mdns \
-	--name whubblock-public-boot-node \
+	--name whub-public-boot-node \
 
 public-node-start:
 	./target/release/node-template -lruntime=debug \
