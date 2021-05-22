@@ -32,7 +32,7 @@ function Main(props) {
     <Grid.Column>
       <Card>
         <Card.Content textAlign="center">
-          <Statistic size="tiny" label="Jack Pot balance" value={potBalance} />
+          <Statistic size="tiny" label="Wehub Pot balance" value={potBalance} />
         </Card.Content>
       </Card>
     </Grid.Column>
