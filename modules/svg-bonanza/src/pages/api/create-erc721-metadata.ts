@@ -84,11 +84,11 @@ function createMetadata(cid: string) {
     properties: {
       name: {
         type: 'string',
-        description: 'WeHub Block Winner!',
+        description: 'Wehub Reward Winner!',
       },
       description: {
         type: 'string',
-        description: 'A unique NTF minted in unique conditions for a winner of the Wehub Network',
+        description: 'A unique NTF minted in unique conditions for a winner of the Wehub Reward lottery',
       },
       image: {
         type: 'string',
